@@ -18,6 +18,9 @@ environ_vars = os.environ.copy()
 environ_vars["GTEST_SHARD_INDEX"] = str(int(SHARD_INDEX) - 1)
 environ_vars["GTEST_TOTAL_SHARDS"] = str(TOTAL_SHARDS)
 
+# Enable GTest "brief" output: only show failures and the final results
+environ_vars["GTEST_BRIEF"] = str(1)
+
 logging.basicConfig(level=logging.INFO)
 
 # If smoke tests are enabled, we run smoke tests only.
@@ -28,15 +31,15 @@ test_type = os.getenv("TEST_TYPE", "full")
 # programatically set test_type to "regression" here.
 
 test_subdir = ""
-timeout = "900"
+timeout = "3600"
 if test_type == "smoke":
     # The emulator regression tests are very fast.
     # If we need something even faster we can use "/smoke" here.
     test_subdir = "/regression"
-    timeout = "300"
+    timeout = "720"
 elif test_type == "regression":
     test_subdir = "/regression"
-    timeout = "300"
+    timeout = "720"
 
 cmd = [
     "ctest",

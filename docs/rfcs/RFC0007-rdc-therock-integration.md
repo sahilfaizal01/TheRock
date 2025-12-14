@@ -1,7 +1,7 @@
 ---
 author: Stella Laurenzo
-created: 2025-01-11
-modified: 2025-01-11
+created: 2025-11-11
+modified: 2025-11-11
 status: Draft
 discussion: [TBD - Add GitHub issue/PR link]
 ---
@@ -67,8 +67,10 @@ portable-rdc/
 │       ├── librdc_rocr.so      # 1MB (optional module)
 │       ├── librdc_rocp.so      # 500KB (optional module)
 │       └── librdc_rvs.so       # 200KB (optional module)
-└── etc/
-    └── rdc_options.conf
+└── share/
+    └── rdc/
+        └── conf/
+            └── rdc_options.conf  # User-level configuration
 ```
 
 **Static Linking Rationale:**
