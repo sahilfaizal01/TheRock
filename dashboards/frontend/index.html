@@ -302,7 +302,18 @@
 
             try {
                 const response = await fetch(`${API_BASE}/issues?limit=${limit}`);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API error (${response.status}): ${errorText}`);
+                }
+
                 const issues = await response.json();
+
+                if (!Array.isArray(issues)) {
+                    console.error('Unexpected response:', issues);
+                    throw new Error('API did not return an array. Check console for details.');
+                }
 
                 if (issues.length === 0) {
                     issueList.innerHTML = '<p>No issues found.</p>';
@@ -328,7 +339,14 @@
                 `).join('');
 
             } catch (error) {
-                issueList.innerHTML = `<p style="color: red;">Error loading issues: ${error.message}</p>`;
+                console.error('Load issues error:', error);
+                issueList.innerHTML = `
+                    <p style="color: red;">Error loading issues: ${error.message}</p>
+                    <p style="color: #666; font-size: 0.9em; margin-top: 10px;">
+                        Make sure the backend is running at ${API_BASE}<br>
+                        Check browser console for more details.
+                    </p>
+                `;
             }
         }
 
@@ -348,8 +366,18 @@
                     })
                 });
 
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API error (${response.status}): ${errorText}`);
+                }
+
                 const data = await response.json();
                 const analyses = data.analyses;
+
+                if (!Array.isArray(analyses)) {
+                    console.error('Unexpected response:', data);
+                    throw new Error('API did not return valid analysis data. Check console for details.');
+                }
 
                 if (analyses.length === 0) {
                     issueList.innerHTML = '<p>No issues analyzed.</p>';
@@ -437,7 +465,16 @@
                 `).join('');
 
             } catch (error) {
-                issueList.innerHTML = `<p style="color: red;">Error analyzing issues: ${error.message}</p>`;
+                console.error('Analyze issues error:', error);
+                issueList.innerHTML = `
+                    <p style="color: red;">Error analyzing issues: ${error.message}</p>
+                    <p style="color: #666; font-size: 0.9em; margin-top: 10px;">
+                        Make sure the backend is running and configured with:<br>
+                        - Valid GitHub token (GITHUB_TOKEN)<br>
+                        - Valid Anthropic API key (ANTHROPIC_API_KEY)<br>
+                        Check browser console for more details.
+                    </p>
+                `;
             }
         }
 
