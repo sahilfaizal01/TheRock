@@ -6,19 +6,38 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Import cache service
+try:
+    from .cache_service import CacheService
+except ImportError:
+    CacheService = None
+
 
 class GitHubService:
     """Service for interacting with GitHub API"""
 
-    def __init__(self, token: Optional[str] = None, repo_owner: str = "ROCm", repo_name: str = "TheRock"):
+    def __init__(self, token: Optional[str] = None, repo_owner: str = "ROCm", repo_name: str = "TheRock", use_cache: bool = True):
         self.token = token or os.getenv("GITHUB_TOKEN")
         self.repo_owner = repo_owner
         self.repo_name = repo_name
         self.github = Github(self.token)
         self.repo = self.github.get_repo(f"{repo_owner}/{repo_name}")
 
-    def get_open_issues(self, limit: int = 100) -> List[Dict[str, Any]]:
+        # Initialize cache
+        self.cache = CacheService() if use_cache and CacheService else None
+        if self.cache:
+            logger.info("GitHub service initialized with caching enabled")
+
+    def get_open_issues(self, limit: int = 100, force_refresh: bool = False) -> List[Dict[str, Any]]:
         """Fetch open issues from the repository"""
+        cache_key = f"open_issues_{self.repo_owner}_{self.repo_name}_{limit}"
+
+        # Try cache first
+        if self.cache and not force_refresh:
+            cached_data = self.cache.get(cache_key, max_age_hours=1)  # Cache for 1 hour
+            if cached_data:
+                return cached_data
+
         try:
             issues = self.repo.get_issues(state='open', sort='created', direction='desc')
 
@@ -43,7 +62,12 @@ class GitHubService:
                     'author': issue.user.login if issue.user else "unknown"
                 })
 
-            logger.info(f"Fetched {len(result)} open issues")
+            logger.info(f"Fetched {len(result)} open issues from API")
+
+            # Cache the results
+            if self.cache:
+                self.cache.set(cache_key, result)
+
             return result
 
         except GithubException as e:
@@ -74,8 +98,16 @@ class GitHubService:
             logger.error(f"Error fetching issue #{issue_number}: {e}")
             raise
 
-    def get_closed_issues(self, days: int = 180, limit: int = 200) -> List[Dict[str, Any]]:
+    def get_closed_issues(self, days: int = 180, limit: int = 200, force_refresh: bool = False) -> List[Dict[str, Any]]:
         """Fetch recently closed issues for similarity matching"""
+        cache_key = f"closed_issues_{self.repo_owner}_{self.repo_name}_{days}_{limit}"
+
+        # Try cache first (cache for 24 hours since closed issues don't change often)
+        if self.cache and not force_refresh:
+            cached_data = self.cache.get(cache_key, max_age_hours=24)
+            if cached_data:
+                return cached_data
+
         try:
             since_date = datetime.now() - timedelta(days=days)
             issues = self.repo.get_issues(state='closed', sort='updated', direction='desc', since=since_date)
@@ -96,7 +128,12 @@ class GitHubService:
                     'labels': [label.name for label in issue.labels],
                 })
 
-            logger.info(f"Fetched {len(result)} closed issues from last {days} days")
+            logger.info(f"Fetched {len(result)} closed issues from last {days} days from API")
+
+            # Cache the results
+            if self.cache:
+                self.cache.set(cache_key, result)
+
             return result
 
         except GithubException as e:
