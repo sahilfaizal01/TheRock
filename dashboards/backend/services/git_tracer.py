@@ -12,9 +12,23 @@ logger = logging.getLogger(__name__)
 class GitTracer:
     """Service for tracing commits and finding root causes in git history"""
 
-    def __init__(self, repo_path: str = "/home/user/TheRock"):
+    def __init__(self, repo_path: Optional[str] = None):
+        if repo_path is None:
+            # Auto-detect repository path from environment or current directory
+            repo_path = os.getenv("REPO_PATH")
+            if repo_path is None:
+                # Try to find the git repo by going up from current file
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                # Go up from backend/services/ to repository root
+                repo_path = os.path.abspath(os.path.join(current_dir, "..", "..", ".."))
+
         self.repo_path = repo_path
-        self.repo = Repo(repo_path)
+        try:
+            self.repo = Repo(repo_path)
+            logger.info(f"Git tracer initialized with repository at: {repo_path}")
+        except Exception as e:
+            logger.warning(f"Could not initialize git repository at {repo_path}: {e}")
+            self.repo = None
 
     def find_commits_affecting_paths(
         self,
@@ -23,6 +37,10 @@ class GitTracer:
         max_commits: int = 50
     ) -> List[Dict[str, Any]]:
         """Find commits that modified specific paths"""
+        if self.repo is None:
+            logger.warning("Git repository not available, skipping commit search")
+            return []
+
         try:
             commits_data = []
 
@@ -63,6 +81,10 @@ class GitTracer:
         max_commits: int = 50
     ) -> List[Dict[str, Any]]:
         """Find commits with specific keywords in the message"""
+        if self.repo is None:
+            logger.warning("Git repository not available, skipping keyword search")
+            return []
+
         try:
             if since_date is None:
                 since_date = datetime.now() - timedelta(days=90)
@@ -91,6 +113,10 @@ class GitTracer:
 
     def blame_file(self, file_path: str, line_numbers: Optional[List[int]] = None) -> List[Dict[str, Any]]:
         """Git blame for a specific file (or specific lines)"""
+        if self.repo is None:
+            logger.warning("Git repository not available, skipping blame")
+            return []
+
         try:
             full_path = os.path.join(self.repo_path, file_path)
 
@@ -179,6 +205,10 @@ class GitTracer:
 
     def get_file_history(self, file_path: str, max_commits: int = 20) -> List[Dict[str, Any]]:
         """Get the commit history for a specific file"""
+        if self.repo is None:
+            logger.warning("Git repository not available, skipping file history")
+            return []
+
         try:
             commits = list(self.repo.iter_commits(paths=file_path, max_count=max_commits))
             return [self._commit_to_dict(commit) for commit in commits]
@@ -189,6 +219,10 @@ class GitTracer:
 
     def get_commit_diff(self, commit_sha: str) -> Dict[str, Any]:
         """Get the diff for a specific commit"""
+        if self.repo is None:
+            logger.warning("Git repository not available, skipping commit diff")
+            return {'commit': {}, 'diffs': []}
+
         try:
             commit = self.repo.commit(commit_sha)
 
