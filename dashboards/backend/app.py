@@ -5,6 +5,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import logging
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 from models.issue import (
@@ -15,8 +16,9 @@ from services.github_service import GitHubService
 from services.ai_analyzer import AIAnalyzer
 from services.git_tracer import GitTracer
 
-# Load environment variables
-load_dotenv()
+# Load environment variables - use explicit path
+env_path = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 # Configure logging
 logging.basicConfig(
@@ -24,6 +26,12 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Log offline mode status
+if os.getenv('OFFLINE_ISSUES_FILE'):
+    logger.info(f"🔌 OFFLINE MODE: Using {os.getenv('OFFLINE_ISSUES_FILE')}")
+else:
+    logger.info("🌐 ONLINE MODE: Using GitHub API")
 
 # Initialize FastAPI app
 app = FastAPI(
