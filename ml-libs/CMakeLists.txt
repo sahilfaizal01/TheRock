@@ -77,6 +77,16 @@ if(THEROCK_ENABLE_MIOPEN)
     list(APPEND optional_miopen_build_deps composable_kernel)
   endif()
 
+  # If Origami-based kernel selection is enabled, add hipBLASLt and rocRoller as build deps
+  # to access Origami's kernel selection capabilities for CK GEMM kernels
+  set(optional_miopen_origami_deps)
+  if(THEROCK_MIOPEN_USE_ORIGAMI_SELECTION)
+    list(APPEND optional_miopen_build_deps hipBLASLt)
+    if(TARGET rocRoller)
+      list(APPEND optional_miopen_origami_deps rocRoller)
+    endif()
+  endif()
+
   if(MSVC)
     # HACK, see https://github.com/ROCm/TheRock/issues/525.
     # Take the most recent few MSVC versions from
@@ -111,6 +121,7 @@ if(THEROCK_ENABLE_MIOPEN)
       -DROCM_DIR=
       "-DBUILD_TESTING=${_THEROCK_MIOPEN_ENABLE_TESTING}"
       "-DMIOPEN_USE_COMPOSABLEKERNEL=${THEROCK_MIOPEN_USE_COMPOSABLE_KERNEL}"
+      "-DMIOPEN_USE_ORIGAMI_SELECTION=${THEROCK_MIOPEN_USE_ORIGAMI_SELECTION}"
       -DMIOPEN_USE_MLIR=OFF # TODO: enable
       -DMIOPEN_TEST_DISCRETE=OFF
       -DBoost_COMPILER=${_THEROCK_MIOPEN_OVERRIDE_BOOST_COMPILER}
@@ -139,6 +150,7 @@ if(THEROCK_ENABLE_MIOPEN)
       ${THEROCK_BUNDLED_BZIP2}
       ${THEROCK_BUNDLED_SQLITE3}
       ${optional_profiler_deps}
+      ${optional_miopen_origami_deps}
   )
   therock_cmake_subproject_provide_package(MIOpen miopen lib/cmake/miopen)
   therock_cmake_subproject_activate(MIOpen)

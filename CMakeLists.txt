@@ -250,6 +250,10 @@ if(NOT WIN32)
   cmake_dependent_option(THEROCK_MIOPEN_USE_COMPOSABLE_KERNEL
     "Enables composable kernel in MIOpen" ON
     "THEROCK_ENABLE_COMPOSABLE_KERNEL" OFF)
+
+  cmake_dependent_option(THEROCK_MIOPEN_USE_ORIGAMI_SELECTION
+    "Enables Origami-based GEMM kernel selection for MIOpen CK backend" ON
+    "THEROCK_ENABLE_MIOPEN;THEROCK_ENABLE_BLAS;THEROCK_MIOPEN_USE_COMPOSABLE_KERNEL" OFF)
 endif()
 
 cmake_dependent_option(THEROCK_ROCWMMA_USE_ROCBLAS
